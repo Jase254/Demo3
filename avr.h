@@ -1,6 +1,9 @@
 #ifndef _AVR_H
 #define _AVR_H
-
+#define F_CPU 16000000UL
+#include <stdio.h>
+#include <string.h>
+#include <util/delay.h>
 #include <avr/interrupt.h>
 #include <avr/pgmspace.h>
 #include <avr/io.h>
@@ -18,7 +21,7 @@
 void avr_init(void);
 
 void avr_wait(unsigned short msec);
-void PlayNote(unsigned int delay, unsigned int duration);
+void PlayNote(float freq, unsigned int duration);
 void PlaySong();
 int get_key();
 int get_num();

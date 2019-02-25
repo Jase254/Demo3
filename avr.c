@@ -11,7 +11,18 @@
 #define B5 506
 #define C6 477
 #define D6 425
-#define DUR 40 
+#define B 2002.47
+#define E 1336.49
+#define Fsh 1500.16
+#define A 1784
+#define Eb 1261.48
+#define G 1589.36
+#define D 1190.68
+#define Db 1123.85
+#define C 1060.77
+#define Ab 1683.87
+#define Bb 1890.08
+#define DUR 40
 
 void avr_init(void)
 {
@@ -33,28 +44,51 @@ avr_wait(unsigned short msec)
 char str[17];
 char out[17];
 
-void PlayNote(unsigned int delay, unsigned int duration){
-	unsigned int temp = 100 * duration;
-	unsigned int delaysm = delay / 50;
-	unsigned int cycles = temp / delaysm;
+void PlayNote(float freq, unsigned int duration){
+	float wav = (1/freq)* 1000;
+	unsigned int cycles = duration/wav;
+	float half_per = (wav/2) *100;
+	lcd_clr();
+	lcd_pos(0,1);
+	sprintf(str,"wav:%2.2f h:%2.2f", wav, half_per);
+	lcd_puts2(str);
+	lcd_pos(1,1);
+	sprintf(str,"cycles:%d f:%2.2f", cycles, freq);
+	lcd_puts2(str);
 	
 	while(cycles > 0){
 		PORTA |= (1<<PA1);
-		avr_wait(delay);
+		avr_wait(half_per);
 		PORTA &= ~(1<<PA1);
-		avr_wait(delay);
-		cycles --;
+		avr_wait(half_per);
+		cycles--;
 	}
 }
-
+struct note{
+	float freq;
+	int dur;
+	};
 void PlaySong(){
 	lcd_clr();
 	lcd_pos(0,1);
 	lcd_puts2("Playing Song");
-	PlayNote(D5, DUR);
-	PlayNote(E5, DUR);
-	PlayNote(D5, DUR);
-	PlayNote(G5, DUR);
+	float tempo= 1;
+	struct note notes[] = {{B, 20}, {E, 40}, {G, 10}, {Fsh, 15}, {E, 40}, {B, 20}, {A, 40}, {Fsh, 40},
+		{E, 20}, {G, 10}, {Fsh, 15}, {Eb, 40}, {E, 20}, {B,40},
+		{B,20}, {E, 30}, {G, 10}, {Fsh, 15}, {E,40}, {B,20}, {D, 40}, {Db, 20}, {C, 30},
+		{Ab,30}, {C,35}, {B,10}, {Bb,15}, {Fsh, 40}, {G, 20}, {E, 100},
+		{G, 20}, {B, 40}, {G,20}, {B,40}, {G,20}, {C,40}, {B,20}, {Bb,30},
+		{Fsh,30}, {G,35}, {B,10}, {Bb,15}, {Bb,40}, {B,20}, {B,100},
+		{G,20}, {E,40}, {G,20}, {B,40}, {G,20}, {D,40}, {Db,20}, {C,30},
+	{Ab,30}, {C,35}, {B,10}, {Bb,15}, {Fsh,40}, {G,20}, {E,120}};
+	int i;
+	for(i=0; i<(sizeof(notes)/sizeof(notes[0])); i++){
+		PlayNote(notes[i].freq, tempo*notes[i].dur);
+		int key = get_key();
+		if(key==8){
+			tempo=tempo*.75;
+		}
+	}
 	lcd_pos(1,1);
 	lcd_puts2("Song Finished");
 }
@@ -86,77 +120,7 @@ int main(void){
 		}
 	}
 }
-// Display the time to lcd
-void display_time(struct datetime *dt){
-	sprintf(out, "%d/%d/%d", dt->month, dt->day, dt->year);
-	lcd_clr();
-	lcd_pos(0,1);
-	lcd_puts2(out);
-	lcd_pos(1,1);
-	// If military time, display without special formatting (default)
-	if(dt->military){
-		sprintf(out, "%02d:%02d:%02d:%d", dt->hour, dt->minute, dt->second, dt->subsecond);
-	}
-	else{
-		// Otherwise some special cases are in play for AM/PM
-		if(dt->hour > 12){
-			sprintf(out, "%02d:%02d:%02d:%d %s", (dt->hour - 12), dt->minute, dt->second, dt->subsecond, "PM");
-		}
-		else if(dt->hour == 0){
-			sprintf(out, "%02d:%02d:%02d:%02d %s", (dt->hour + 12), dt->minute, dt->second, dt->subsecond, "AM");
-		}
-		else{
-			sprintf(out, "%02d:%02d:%02d:%d %s", dt->hour, dt->minute, dt->second, dt->subsecond, "AM");
-		}
-	}
-	lcd_puts2(out);
-}
 
-/************************************************************************/
-/* Prompt user to enter in first minute, then hour.                     */
-/************************************************************************/
-void set_time(struct datetime *dt){
-	lcd_clr();
-	lcd_pos(0,1);
-	strcpy(str, "Minute: ");
-	lcd_puts2(str);
-	dt->minute = get_num();
-	avr_wait(200);
-	
-	lcd_clr();
-	lcd_pos(0,1);
-	strcpy(str, "Hour: ");
-	lcd_puts2(str);
-	dt->hour = get_num();
-	avr_wait(200);
-	dt->second = 0;
-	dt->subsecond = 0;
-}
-/************************************************************************/
-/* Prompt user to enter in first day, then month, then year             */
-/************************************************************************/
-void set_date(struct datetime *dt){
-	lcd_clr();
-	lcd_pos(0,1);
-	strcpy(str, "Day: ");
-	lcd_puts2(str);
-	dt->day = get_num();
-	avr_wait(200);
-	
-	lcd_clr();
-	lcd_pos(0,1);
-	strcpy(str, "Month: ");
-	lcd_puts2(str);
-	dt->month = get_num();
-	avr_wait(200);
-	
-	lcd_clr();
-	lcd_pos(0,1);
-	strcpy(str, "Year: ");
-	lcd_puts2(str);
-	dt->year = get_num();
-	avr_wait(200);
-}
 /************************************************************************/
 /* Gets actual keypad value (numbers 0-9)                               */
 /************************************************************************/
@@ -184,59 +148,6 @@ int get_num(void){
 				avr_wait(200);
 				break;
 		}
-	}
-}
-
-/************************************************************************/
-/* Runs within main loop to keep time                                   */
-/************************************************************************/
-void keep_time(struct datetime *date){
-	if(++(date->subsecond) > 9){
-		date->subsecond = 0;
-		if(++(date->second) > 59){
-			date->second = 0;
-			if(++(date->minute) > 59){
-				date->minute = 0;
-				if(++(date->hour) > 23){
-					date->hour = 0;
-					keep_date(date);
-				}
-			}
-		}
-	}
-}
-/************************************************************************/
-/* Called by keep time function                                         */
-/************************************************************************/
-void keep_date(struct datetime *date){
-	date->day++;
-	char extra = 0;
-	switch(date->month){
-		case 2:
-			if((date->year % 4) == 0) extra = 1;
-			if(date->day > (28+extra)){
-				date->month++;
-				date->day = 1;
-			}
-			break;
-		case 4:
-		case 6:
-		case 9:
-		case 11:
-			if(date->day > 30){
-				date->month++;
-				date->day = 1;
-			}
-			break;
-		default:
-			if(date->day > 31){
-				date->day = 1;
-				if(++(date->month)>12){
-					date->month = 1;
-					++(date->year);
-				}
-			}
-			break;
 	}
 }
 
