@@ -44,13 +44,13 @@ avr_wait(unsigned short msec)
 char str[17];
 char out[17];
 
-void PlayNote(float freq, unsigned int duration){
+void PlayNote(float freq, unsigned int duration, float vol){
 	float wav = (1/freq)* 1000;
 	unsigned int cycles = duration/wav;
-	float half_per = (wav/2) *100;
+	float period = wav *100;
 	lcd_clr();
 	lcd_pos(0,1);
-	sprintf(str,"wav:%2.2f h:%2.2f", wav, half_per);
+	sprintf(str,"per:%2.2f v:%2.2f", period, vol);
 	lcd_puts2(str);
 	lcd_pos(1,1);
 	sprintf(str,"cycles:%d f:%2.2f", cycles, freq);
@@ -58,9 +58,9 @@ void PlayNote(float freq, unsigned int duration){
 	
 	while(cycles > 0){
 		PORTA |= (1<<PA1);
-		avr_wait(half_per);
+		avr_wait(vol*period);
 		PORTA &= ~(1<<PA1);
-		avr_wait(half_per);
+		avr_wait((1-vol)*period);
 		cycles--;
 	}
 }
@@ -73,6 +73,7 @@ void PlaySong(){
 	lcd_pos(0,1);
 	lcd_puts2("Playing Song");
 	float tempo= 1;
+	float vol=0.5;
 	struct note notes[] = {{B, 20}, {E, 40}, {G, 10}, {Fsh, 15}, {E, 40}, {B, 20}, {A, 40}, {Fsh, 40},
 		{E, 20}, {G, 10}, {Fsh, 15}, {Eb, 40}, {E, 20}, {B,40},
 		{B,20}, {E, 30}, {G, 10}, {Fsh, 15}, {E,40}, {B,20}, {D, 40}, {Db, 20}, {C, 30},
@@ -83,10 +84,19 @@ void PlaySong(){
 	{Ab,30}, {C,35}, {B,10}, {Bb,15}, {Fsh,40}, {G,20}, {E,120}};
 	int i;
 	for(i=0; i<(sizeof(notes)/sizeof(notes[0])); i++){
-		PlayNote(notes[i].freq, tempo*notes[i].dur);
+		PlayNote(notes[i].freq, tempo*notes[i].dur, vol);
 		int key = get_key();
 		if(key==8){
 			tempo=tempo*.75;
+			vol=vol*1.1;
+		}
+		if(key==12){
+			
+		}
+		if(key==16){
+			if(vol>0.15){
+				vol=vol-.1;
+			}
 		}
 	}
 	lcd_pos(1,1);
@@ -102,6 +112,9 @@ int main(void){
 	lcd_pos(0,1);
 	
 	DDRA |= (1<< PA1);
+	lcd_clr();
+	lcd_pos(0,1);
+	lcd_puts2("Press A to play song!");
 	
 	for(;;){
 		//Main loop will check if key pressed, and if it is A or B, do something
@@ -111,11 +124,11 @@ int main(void){
 			// Set date and time
 			case 4:
 				PlaySong();
-				break;
-			default:
 				lcd_clr();
 				lcd_pos(0,1);
-				lcd_puts2("Wrong Key!");
+				lcd_puts2("Press A to play song!");
+				break;
+			default:
 				break;
 		}
 	}

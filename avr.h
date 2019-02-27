@@ -21,7 +21,7 @@
 void avr_init(void);
 
 void avr_wait(unsigned short msec);
-void PlayNote(float freq, unsigned int duration);
+void PlayNote(float freq, unsigned int duration, float vol);
 void PlaySong();
 int get_key();
 int get_num();
