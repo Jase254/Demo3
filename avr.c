@@ -44,13 +44,13 @@ avr_wait(unsigned short msec)
 char str[17];
 char out[17];
 
-void PlayNote(float freq, unsigned int duration, float vol){
+void PlayNote(float freq, unsigned int duration){
 	float wav = (1/freq)* 1000;
 	unsigned int cycles = duration/wav;
-	float period = wav *100;
+	float period = (wav/2) * 100;
 	lcd_clr();
 	lcd_pos(0,1);
-	sprintf(str,"per:%2.2f v:%2.2f", period, vol);
+	sprintf(str,"per:%2.2f w:%2.2f", period, wav);
 	lcd_puts2(str);
 	lcd_pos(1,1);
 	sprintf(str,"cycles:%d f:%2.2f", cycles, freq);
@@ -58,9 +58,9 @@ void PlayNote(float freq, unsigned int duration, float vol){
 	
 	while(cycles > 0){
 		PORTA |= (1<<PA1);
-		avr_wait(vol*period);
+		avr_wait(period);
 		PORTA &= ~(1<<PA1);
-		avr_wait((1-vol)*period);
+		avr_wait(period);
 		cycles--;
 	}
 }
@@ -73,7 +73,6 @@ void PlaySong(){
 	lcd_pos(0,1);
 	lcd_puts2("Playing Song");
 	float tempo= 1;
-	float vol=0.5;
 	struct note notes[] = {{B, 20}, {E, 40}, {G, 10}, {Fsh, 15}, {E, 40}, {B, 20}, {A, 40}, {Fsh, 40},
 		{E, 20}, {G, 10}, {Fsh, 15}, {Eb, 40}, {E, 20}, {B,40},
 		{B,20}, {E, 30}, {G, 10}, {Fsh, 15}, {E,40}, {B,20}, {D, 40}, {Db, 20}, {C, 30},
@@ -84,19 +83,10 @@ void PlaySong(){
 	{Ab,30}, {C,35}, {B,10}, {Bb,15}, {Fsh,40}, {G,20}, {E,120}};
 	int i;
 	for(i=0; i<(sizeof(notes)/sizeof(notes[0])); i++){
-		PlayNote(notes[i].freq, tempo*notes[i].dur, vol);
+		PlayNote(notes[i].freq, tempo*notes[i].dur);
 		int key = get_key();
 		if(key==8){
-			tempo=tempo*.75;
-			vol=vol*1.1;
-		}
-		if(key==12){
-			
-		}
-		if(key==16){
-			if(vol>0.15){
-				vol=vol-.1;
-			}
+			tempo=tempo*.90;
 		}
 	}
 	lcd_pos(1,1);
